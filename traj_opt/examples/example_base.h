@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 #include "drake/common/find_resource.h"
 #include "drake/geometry/meshcat.h"
@@ -149,6 +150,20 @@ class TrajOptExample {
   std::vector<VectorXd> MakeLinearInterpolation(const VectorXd& start,
                                                 const VectorXd& end,
                                                 int N) const {
+    std::cout<<"Inside MakeLinearInterpolation function."<<std::endl;
+    std::cout<<"start_q:";
+    for (int i=0;i<start.size();++i) {
+      auto start_q = start[i];
+      std::cout<<start_q<<",";
+    }
+    std::cout<<"."<<std::endl;
+    std::cout<<"end_q:";
+    for (int i=0;i<end.size();++i) {
+      auto end_q = end[i];
+      std::cout<<end_q<<",";
+    }
+    std::cout<<"."<<std::endl;
+
     std::vector<VectorXd> result;
     double lambda = 0;
     for (int i = 0; i < N; ++i) {

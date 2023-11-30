@@ -193,7 +193,31 @@ TrajectoryOptimizerSolution<double> TrajOptExample::SolveTrajectoryOptimization(
 
   // Normalize quaternions in the reference
   // TODO(vincekurtz): consider moving this to SetProblemDefinition
+  std::cout<<"q_nom from parser before normalization."<<std::endl;
+  for (int i =0; i< opt_prob.q_nom.size(); ++i) {
+    int q_nom_size = opt_prob.q_nom[i].size();
+    auto q_nom_var = opt_prob.q_nom[i];
+    if (i == 0 || i == q_nom_size-1) {
+      for (int j=0;j<q_nom_size;j++) {
+        std::cout << q_nom_var[j] <<" ";
+      }
+      std::cout<<i<<" th q_nom"<<std::endl;
+    }
+  }
+  std::cout<<"."<<std::endl;
   NormalizeQuaternions(plant, &opt_prob.q_nom);
+  std::cout<<"after normalization q_nom from parser."<<std::endl;
+  for (int i =0; i< opt_prob.q_nom.size(); ++i) {
+    int q_nom_size = opt_prob.q_nom[i].size();
+    auto q_nom_var = opt_prob.q_nom[i];
+    if (i == 0 || i == q_nom_size-1) {
+      for (int j=0;j<q_nom_size;j++) {
+        std::cout << q_nom_var[j] <<" ";
+      }
+      std::cout<<i<<" th q_nom"<<std::endl;
+    }
+  }
+  std::cout<<"."<<std::endl;
 
   // Set our solver parameters
   SolverParameters solver_params;
@@ -202,7 +226,33 @@ TrajectoryOptimizerSolution<double> TrajOptExample::SolveTrajectoryOptimization(
   // Establish an initial guess
   std::vector<VectorXd> q_guess = MakeLinearInterpolation(
       opt_prob.q_init, options.q_guess, opt_prob.num_steps + 1);
+  std::cout<<"q_guess.size:"<<q_guess.size()<<std::endl;
+
+  for (int i=0;i<q_guess.size();++i) {
+    int hoge = q_guess[i].size();
+    auto matrix = q_guess[i];
+    //std::cout << hoge << std::endl;
+    if (i == 0 || i == q_guess.size()-1) {
+      for (int j=0;j<hoge;j++) {
+        std::cout << matrix[j] <<" ";
+      }
+      std::cout<<i<<" th guess"<<std::endl;
+    }
+  }
   NormalizeQuaternions(plant, &q_guess);
+  std::cout<<"after normalization"<<std::endl;
+  std::cout<<"q_guess"<<std::endl;
+  for (int i=0;i<q_guess.size();++i) {
+    int hoge = q_guess[i].size();
+    auto matrix = q_guess[i];
+    //std::cout << hoge << std::endl;
+    if (i == 0 || i == q_guess.size()-1) {
+      for (int j=0;j<hoge;j++) {
+        std::cout << matrix[j] <<" ";
+      }
+      std::cout<<i<<" th guess"<<std::endl;
+    }
+  }
 
   // N.B. This should always be the case, and is checked by the solver. However,
   // sometimes floating point + normalization stuff makes q_guess != q_init, so
@@ -357,6 +407,13 @@ void TrajOptExample::SetProblemDefinition(const TrajOptExampleParams& options,
   opt_prob->num_steps = options.num_steps;
 
   // Initial state
+  std::cout<<"Inside SetProblemDefinition."<<std::endl;
+  for (int i=0; i<options.q_init.size();++i) {
+    auto q_init_i = options.q_init[i];
+    std::cout<<q_init_i<<",";
+  }
+  std::cout<<"."<<std::endl;
+  //for (int i = 0;)
   opt_prob->q_init = options.q_init;
   opt_prob->v_init = options.v_init;
 
