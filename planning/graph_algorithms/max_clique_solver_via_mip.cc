@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <iostream>
 
 #include "drake/common/ssize.h"
 #include "drake/solvers/choose_best_solver.h"
@@ -18,6 +19,7 @@ MaxCliqueSolverViaMip::MaxCliqueSolverViaMip(
 
 VectorX<bool> MaxCliqueSolverViaMip::DoSolveMaxClique(
     const SparseMatrix<bool>& adjacency_matrix) const {
+  std::cout<<"Inside DoSolveMaxClique."<<std::endl;
   const int n = adjacency_matrix.rows();
   DRAKE_THROW_UNLESS(!initial_guess_.has_value() ||
                      initial_guess_.value().rows() == n);
@@ -69,6 +71,7 @@ VectorX<bool> MaxCliqueSolverViaMip::DoSolveMaxClique(
   std::optional<solvers::SolverId> solver_id;
   try {
     solver_id = solvers::ChooseBestSolver(prog);
+    std::cout<<"Got solver id."<<std::endl;
   } catch (const std::exception&) {
     // TODO(Alexandre.Amice) update the error message if other max clique
     // solvers based become available.
@@ -81,6 +84,7 @@ VectorX<bool> MaxCliqueSolverViaMip::DoSolveMaxClique(
   }
   solver = solvers::MakeSolver(solver_id.value());
   solver->Solve(prog, initial_guess_, solver_options_, &result);
+  std::cout<<"result:"<<result.is_success()<<std::endl;
   DRAKE_DEMAND(result.is_success());
 
   // Manually cast the return to a boolean to avoid round off errors from the

@@ -5,6 +5,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "drake/common/random.h"
 #include "drake/geometry/optimization/convex_set.h"
@@ -164,10 +165,34 @@ void IrisFromCliqueCover(const ConvexSets& obstacles, const HPolyhedron& domain,
 
   // Now put the HPolyhedra back into sets.
   sets->reserve(abstract_sets.size());
+  int set_index = 0;
   for (auto& abstract_set : abstract_sets) {
     std::unique_ptr<HPolyhedron> set{
         dynamic_cast<HPolyhedron*>(abstract_set.release())};
+    auto A = set->A();
+    auto b = set->b();
+    std::cout<<"set "<<set_index<<std::endl;
+    std::cout<<"  A :"<<", rows:"<<A.rows()<<", cols:"<<A.cols()<<std::endl;
+    std::cout<<"  b :"<<", rows:"<<b.rows()<<", cols:"<<b.cols()<<std::endl;
+    /*
+    for (int i=0;i<A.rows();i++) {
+      for (int j=0;j<A.cols();i++) {
+        std::cout<<A(i,j)<<",";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    std::cout<<"  b :"<<", rows:"<<b.rows()<<", cols:"<<b.cols()<<std::endl;
+    for (int i=0;i<b.rows();i++) {
+      for (int j=0;j<b.cols();i++) {
+        std::cout<<b(i,j)<<",";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    */
     sets->emplace_back(std::move(set));
+    set_index += 1;
   }
 }
 
