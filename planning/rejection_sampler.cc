@@ -6,7 +6,7 @@ namespace drake {
 namespace planning {
 
 RejectionSampler::RejectionSampler(
-    std::shared_ptr<PointSamplerBase> sampler,
+    const std::shared_ptr<PointSamplerBase>& sampler,
     const std::function<bool(const Eigen::Ref<const Eigen::VectorXd>&)>&
         rejection_fun)
     : sampler_{sampler}, rejection_fun_{rejection_fun} {}

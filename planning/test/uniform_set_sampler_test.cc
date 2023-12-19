@@ -30,6 +30,10 @@ GTEST_TEST(UniformSetSampler, UniformHPolyhedronSamplerDefaultCtor) {
   }
   EXPECT_TRUE(
       CompareMatrices(samples_from_sampler, samples_from_polyhedron, 1e-12));
+
+  const HPolyhedron set{sampler.Set()};
+  EXPECT_TRUE(CompareMatrices(set.A(), polyhedron.A(), 1e-12));
+  EXPECT_TRUE(CompareMatrices(set.b(), polyhedron.b(), 1e-12));
 }
 
 GTEST_TEST(UniformSetSampler, UniformHPolyhedronSamplerManualSeed) {
@@ -50,6 +54,10 @@ GTEST_TEST(UniformSetSampler, UniformHPolyhedronSamplerManualSeed) {
   }
   EXPECT_TRUE(
       CompareMatrices(samples_from_sampler, samples_from_polyhedron, 1e-12));
+
+  const HPolyhedron set{sampler.Set()};
+  EXPECT_TRUE(CompareMatrices(set.A(), polyhedron.A(), 1e-12));
+  EXPECT_TRUE(CompareMatrices(set.b(), polyhedron.b(), 1e-12));
 }
 
 GTEST_TEST(UniformSetSampler, UniformHyperrectangleSamplerDefaultCtor) {
@@ -70,6 +78,10 @@ GTEST_TEST(UniformSetSampler, UniformHyperrectangleSamplerDefaultCtor) {
   }
   EXPECT_TRUE(
       CompareMatrices(samples_from_sampler, samples_from_polyhedron, 1e-12));
+
+  const Hyperrectangle set{sampler.Set()};
+  EXPECT_TRUE(CompareMatrices(set.lb(), rectangle.lb(), 1e-12));
+  EXPECT_TRUE(CompareMatrices(set.ub(), rectangle.ub(), 1e-12));
 }
 
 GTEST_TEST(UniformSetSampler, UniformHyperrectangleSamplerManualSeed) {
@@ -90,6 +102,10 @@ GTEST_TEST(UniformSetSampler, UniformHyperrectangleSamplerManualSeed) {
   }
   EXPECT_TRUE(
       CompareMatrices(samples_from_sampler, samples_from_polyhedron, 1e-12));
+
+  const Hyperrectangle set{sampler.Set()};
+  EXPECT_TRUE(CompareMatrices(set.lb(), rectangle.lb(), 1e-12));
+  EXPECT_TRUE(CompareMatrices(set.ub(), rectangle.ub(), 1e-12));
 }
 
 }  // namespace
