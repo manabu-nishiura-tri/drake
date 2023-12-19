@@ -51,11 +51,20 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
         .def(py::init<const HPolyhedron&>(), py::arg("set"),
             cls_doc.ctor.doc_1args)
         .def(py::init<const HPolyhedron&, const RandomGenerator&>(),
-            py::arg("set"), py::arg("generator"), cls_doc.ctor.doc_2args);
-    //    py::class_<UniformSetSampler<geometry::optimization::Hyperrectangle>,
-    //    PointSamplerBase>
-    //        hyperrectangle_sampler(m, "UniformHyperrectangleSampler",
-    //        cls_doc.doc);
+            py::arg("set"), py::arg("generator"), cls_doc.ctor.doc_2args)
+        .def("Set", &Class::Set, cls_doc.Set.doc);
+  }
+  {
+    const auto& cls_doc = doc.UniformSetSampler;
+    using geometry::optimization::Hyperrectangle;
+    using Class = UniformSetSampler<Hyperrectangle>;
+    py::class_<Class, PointSamplerBase, std::shared_ptr<Class>>(
+        m, "UniformHyperrectangleSampler", cls_doc.doc)
+        .def(py::init<const Hyperrectangle&>(), py::arg("set"),
+            cls_doc.ctor.doc_1args)
+        .def(py::init<const Hyperrectangle&, const RandomGenerator&>(),
+            py::arg("set"), py::arg("generator"), cls_doc.ctor.doc_2args)
+        .def("Set", &Class::Set, cls_doc.Set.doc);
   }
   {
     const auto& cls_doc = doc.RejectionSampler;

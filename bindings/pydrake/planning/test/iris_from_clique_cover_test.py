@@ -40,35 +40,31 @@ class TestIrisFromCliqueCover(unittest.TestCase):
         generator = RandomGenerator(0)
         mut.UniformHPolyhedronSampler(set=set)
         sampler = mut.UniformHPolyhedronSampler(set=set, generator=generator)
-        numpy_compare.assert_equal(sampler.set.A(), A)
-        numpy_compare.assert_equal(sampler.set.b(), b)
+        numpy_compare.assert_equal(sampler.Set().A(), A)
+        numpy_compare.assert_equal(sampler.Set().b(), b)
 
         num_points = 3
         self.assertEqual(sampler.SamplePoints(num_points).shape, (2, 3))
 
-    #     lb = np.array([0, 0, 0])
-    #     ub = np.array([1, 1, 1])
-    #     set = Hyperrectangle(lb, ub)
-    #     mut.UniformHyperrectangleSampler(set=set)
-    #     sampler = mut.UniformHyperrectangleSampler(set=set, generator=generator)
-    #     numpy_compare.assert_equal(sampler.set.lb(), lb)
-    #     numpy_compare.assert_equal(sampler.set.ub(), ub)
-    #     self.assertEqual(sampler.SamplePoints(num_points).shape, (3, 3))
-    #
-    # def test_rejection_sampler(self):
-    #     lb = np.array([0, 0, 0])
-    #     ub = np.array([1, 1, 1])
-    #     set = Hyperrectangle(lb, ub)
-    #     generator = RandomGenerator(0)
-    #     base_sampler = mut.UniformSetSampler(set=set, generator=generator)
-    #     sampler = mut.RejectionSampler(sampler=base_sampler,
-    #                                    rejection_fun=lambda x: np.any(x > 0.5))
-    #     self.assertEqual(sampler.SamplePoints(7).shape, (3, 7))
-    #     self.assertFalse(True)
-    #     print("HERE")
-        # numpy_compare.assert_equal(sampler.set.lb(), lb)
-        # numpy_compare.assert_equal(sampler.set.ub(), ub)
-        # self.assertEqual(sampler.SamplePoints(num_points).shape, (3, 3))
+        lb = np.array([0, 0, 0])
+        ub = np.array([1, 1, 1])
+        set = Hyperrectangle(lb, ub)
+        mut.UniformHyperrectangleSampler(set=set)
+        sampler = mut.UniformHyperrectangleSampler(set=set, generator=generator)
+        numpy_compare.assert_equal(sampler.Set().lb(), lb)
+        numpy_compare.assert_equal(sampler.Set().ub(), ub)
+        self.assertEqual(sampler.SamplePoints(num_points).shape, (3, 3))
+
+    def test_rejection_sampler(self):
+        lb = np.array([0, 0, 0])
+        ub = np.array([1, 1, 1])
+        set = Hyperrectangle(lb, ub)
+        generator = RandomGenerator(0)
+        base_sampler = mut.UniformHyperrectangleSampler(set=set, generator=generator)
+        sampler = mut.RejectionSampler(sampler=base_sampler,
+                                       rejection_fun=lambda x: np.any(x > 0.5))
+        num_points = 7
+        self.assertEqual(sampler.SamplePoints(num_points).shape, (3, num_points))
 
 
 
