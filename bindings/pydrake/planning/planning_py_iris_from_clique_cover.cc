@@ -2,6 +2,7 @@
 #include "drake/bindings/pydrake/documentation_pybind.h"
 #include "drake/bindings/pydrake/geometry/optimization_pybind.h"
 #include "drake/bindings/pydrake/pydrake_pybind.h"
+#include "drake/geometry/optimization/hyperrectangle.h"
 #include "drake/planning/adjacency_matrix_builder_base.h"
 #include "drake/planning/approximate_convex_cover_builder_base.h"
 #include "drake/planning/convex_set_from_clique_builder_base.h"
@@ -11,7 +12,6 @@
 #include "drake/planning/point_sampler_base.h"
 #include "drake/planning/rejection_sampler.h"
 #include "drake/planning/uniform_set_sampler.h"
-#include "drake/geometry/optimization/hyperrectangle.h"
 #include "drake/planning/visibility_graph_builder.h"
 
 namespace drake {
@@ -44,14 +44,27 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
   }
   {
     const auto& cls_doc = doc.UniformSetSampler;
-    py::class_<UniformSetSampler<geometry::optimization::HPolyhedron>>
-        hpoly_sampler(m, "UniformHPolyhedronSampler", cls_doc.doc);
-    py::class_<UniformSetSampler<geometry::optimization::Hyperrectangle>>
-        hyperrectangle_sampler(m, "UniformHyperrectangleSampler", cls_doc.doc);
+    using geometry::optimization::HPolyhedron;
+    using Class = UniformSetSampler<HPolyhedron>;
+    py::class_<Class, PointSamplerBase>(
+        m, "UniformHPolyhedronSampler", cls_doc.doc)
+        .def(py::init<const HPolyhedron&>(), py::arg("set"),
+            cls_doc.ctor.doc_1args)
+        .def(py::init<const HPolyhedron&, const RandomGenerator&>(),
+            py::arg("set"), py::arg("generator"), cls_doc.ctor.doc_2args);
+    //    py::class_<UniformSetSampler<geometry::optimization::Hyperrectangle>,
+    //    PointSamplerBase>
+    //        hyperrectangle_sampler(m, "UniformHyperrectangleSampler",
+    //        cls_doc.doc);
   }
   {
-//    const auto& cls_doc = doc.RejectionSampler;
-//    py::class
+    const auto& cls_doc = doc.RejectionSampler;
+    py::class_<RejectionSampler, PointSamplerBase>(
+        m, "RejectionSampler", cls_doc.doc)
+        .def(py::init<std::shared_ptr<PointSamplerBase>,
+                 std::function<bool(
+                     const Eigen::Ref<const Eigen::VectorXd>&)>>(),
+            py::arg("sampler"), py::arg("rejection_fun"), cls_doc.ctor.doc);
   }
 
   // CoverageCheckerBase and CoverageCheckerViaBernoulliTest
