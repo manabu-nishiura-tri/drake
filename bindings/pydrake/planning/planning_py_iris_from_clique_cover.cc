@@ -1,7 +1,7 @@
+#include "drake/bindings/pydrake/common/cpp_template_pybind.h"
 #include "drake/bindings/pydrake/documentation_pybind.h"
 #include "drake/bindings/pydrake/geometry/optimization_pybind.h"
 #include "drake/bindings/pydrake/pydrake_pybind.h"
-
 #include "drake/planning/adjacency_matrix_builder_base.h"
 #include "drake/planning/approximate_convex_cover_builder_base.h"
 #include "drake/planning/convex_set_from_clique_builder_base.h"
@@ -10,6 +10,8 @@
 #include "drake/planning/iris_from_clique_cover.h"
 #include "drake/planning/point_sampler_base.h"
 #include "drake/planning/rejection_sampler.h"
+#include "drake/planning/uniform_set_sampler.h"
+#include "drake/geometry/optimization/hyperrectangle.h"
 #include "drake/planning/visibility_graph_builder.h"
 
 namespace drake {
@@ -39,12 +41,17 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
         .def(py::init<>(), cls_doc.ctor.doc)
         .def("SamplePoints", &PointSamplerBase::SamplePoints,
             py::arg("num_points"), cls_doc.SamplePoints.doc);
-
-    //      const auto& cls_doc = doc.UniformSetSampler;
-    //      py::class_<UniformSetSampler<HPolyhedron>> hpoly_sampler(
-    //          m, "UniformHPolyhedronSampler");
-    //      AddTemplateClass(
-    //          m, "UnfiromSetSampler", binding_cls, GetPyParam<HPolyhedron>());
+  }
+  {
+    const auto& cls_doc = doc.UniformSetSampler;
+    py::class_<UniformSetSampler<geometry::optimization::HPolyhedron>>
+        hpoly_sampler(m, "UniformHPolyhedronSampler", cls_doc.doc);
+    py::class_<UniformSetSampler<geometry::optimization::Hyperrectangle>>
+        hyperrectangle_sampler(m, "UniformHyperrectangleSampler", cls_doc.doc);
+  }
+  {
+//    const auto& cls_doc = doc.RejectionSampler;
+//    py::class
   }
 
   // CoverageCheckerBase and CoverageCheckerViaBernoulliTest
@@ -59,17 +66,17 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
             bool, CoverageCheckerBase, DoCheckCoverage, current_sets);
       }
     };
-//    const auto& cls_doc = doc.CoverageCheckerBase;
-//    py::class_<CoverageCheckerBase, PyCoverageCheckerBase>(
-//        m, "CoverageCheckerBase", cls_doc.doc)
-//        .def(py::init<>(), cls_doc.ctor.doc)
-//        .def(
-//            "CheckCoverage",
-//            [](CoverageCheckerBase& self, const std::vector<geometry::optimization::ConvexSet*>& sets) {
-//              return self.CheckCoverage(CloneConvexSets(sets));
-//            },
-//            py::arg("sets"), cls_doc.CheckCoverage.doc)
-            ;
+    const auto& cls_doc = doc.CoverageCheckerBase;
+    py::class_<CoverageCheckerBase, PyCoverageCheckerBase>(
+        m, "CoverageCheckerBase", cls_doc.doc)
+        .def(py::init<>(), cls_doc.ctor.doc)
+        .def(
+            "CheckCoverage",
+            [](CoverageCheckerBase& self,
+                const std::vector<geometry::optimization::ConvexSet*>& sets) {
+              return self.CheckCoverage(CloneConvexSets(sets));
+            },
+            py::arg("sets"), cls_doc.CheckCoverage.doc);
   }
 
 }  // DefinePlanningIrisFromCliqueCover

@@ -4,7 +4,7 @@ import unittest
 
 import pydrake.planning as mut
 from pydrake.common.test_utilities import numpy_compare
-from pydrake.geometry.optimization import HPolyhedron
+from pydrake.geometry.optimization import HPolyhedron, Hyperrectangle
 from pydrake.common import RandomGenerator
 
 class TestIrisFromCliqueCover(unittest.TestCase):
@@ -32,3 +32,20 @@ class TestIrisFromCliqueCover(unittest.TestCase):
 
         num_points = 3
         self.assertEqual(sampler.SamplePoints(num_points).shape, (2,3))
+
+def test_uniform_set_sampler(self):
+    A = np.array([[-1,0], [0,-1], [1,1]])
+    b = np.array([0,0,1])
+    set = HPolyhedron(A,b)
+    generator = RandomGenerator(0)
+    sampler = mut.UniformSetSampler(set, generator)
+    numpy_compare.assert_equal(sampler.set.A(), A)
+    numpy_compare.assert_equal(sampler.set.b(), b)
+
+    num_points = 3
+    self.assertEqual(sampler.SamplePoints(num_points).shape, (2,3))
+
+    set = Hyperrectangle(np.array([0,0]), np.array([1,1]))
+    sampler = mut.UniformSetSampler(set, generator)
+
+
