@@ -1,4 +1,5 @@
 #include "drake/bindings/pydrake/common/cpp_template_pybind.h"
+#include "drake/bindings/pydrake/common/wrap_function.h"
 #include "drake/bindings/pydrake/documentation_pybind.h"
 #include "drake/bindings/pydrake/geometry/optimization_pybind.h"
 #include "drake/bindings/pydrake/pydrake_pybind.h"
@@ -36,8 +37,10 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
       }
     };
     const auto& cls_doc = doc.PointSamplerBase;
-    py::class_<PointSamplerBase, PyPointSamplerBase>(
-        m, "PointSamplerBase", cls_doc.doc)
+    // Use non-default holder type due to use of shared pointers of
+    // PointSamplerBase being used throughout iris_from_clique_cover.
+    py::class_<PointSamplerBase, std::shared_ptr<PointSamplerBase>,
+        PyPointSamplerBase>(m, "PointSamplerBase", cls_doc.doc)
         .def(py::init<>(), cls_doc.ctor.doc)
         .def("SamplePoints", &PointSamplerBase::SamplePoints,
             py::arg("num_points"), cls_doc.SamplePoints.doc);
@@ -46,7 +49,9 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
     const auto& cls_doc = doc.UniformSetSampler;
     using geometry::optimization::HPolyhedron;
     using Class = UniformSetSampler<HPolyhedron>;
-    py::class_<Class, PointSamplerBase>(
+    // Use non-default holder type due to use of shared pointers of
+    // PointSamplerBase being used throughout iris_from_clique_cover.
+    py::class_<Class, std::shared_ptr<Class>, PointSamplerBase>(
         m, "UniformHPolyhedronSampler", cls_doc.doc)
         .def(py::init<const HPolyhedron&>(), py::arg("set"),
             cls_doc.ctor.doc_1args)
@@ -58,7 +63,9 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
     const auto& cls_doc = doc.UniformSetSampler;
     using geometry::optimization::Hyperrectangle;
     using Class = UniformSetSampler<Hyperrectangle>;
-    py::class_<Class, PointSamplerBase, std::shared_ptr<Class>>(
+    // Use non-default holder type due to use of shared pointers of
+    // PointSamplerBase being used throughout iris_from_clique_cover.
+    py::class_<Class, std::shared_ptr<Class>, PointSamplerBase>(
         m, "UniformHyperrectangleSampler", cls_doc.doc)
         .def(py::init<const Hyperrectangle&>(), py::arg("set"),
             cls_doc.ctor.doc_1args)
@@ -67,9 +74,11 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
         .def("Set", &Class::Set, cls_doc.Set.doc);
   }
   {
+    // Use non-default holder type due to use of shared pointers of
+    // PointSamplerBase being used throughout iris_from_clique_cover.
     const auto& cls_doc = doc.RejectionSampler;
-    py::class_<RejectionSampler, PointSamplerBase>(
-        m, "RejectionSampler", cls_doc.doc)
+    py::class_<RejectionSampler, PointSamplerBase,
+        std::shared_ptr<RejectionSampler>>(m, "RejectionSampler", cls_doc.doc)
         .def(py::init<std::shared_ptr<PointSamplerBase>,
                  std::function<bool(
                      const Eigen::Ref<const Eigen::VectorXd>&)>>(),
@@ -100,7 +109,6 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
             },
             py::arg("sets"), cls_doc.CheckCoverage.doc);
   }
-
 }  // DefinePlanningIrisFromCliqueCover
 }  // namespace internal
 }  // namespace pydrake

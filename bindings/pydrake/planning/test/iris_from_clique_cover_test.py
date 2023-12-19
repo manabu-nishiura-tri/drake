@@ -36,7 +36,7 @@ class TestIrisFromCliqueCover(unittest.TestCase):
     def test_uniform_set_sampler(self):
         A = np.array([[-1, 0], [0, -1], [1, 1]])
         b = np.array([0, 0, 1])
-        set = HPolyhedron(A,b)
+        set = HPolyhedron(A, b)
         generator = RandomGenerator(0)
         mut.UniformHPolyhedronSampler(set=set)
         sampler = mut.UniformHPolyhedronSampler(set=set, generator=generator)
@@ -50,7 +50,8 @@ class TestIrisFromCliqueCover(unittest.TestCase):
         ub = np.array([1, 1, 1])
         set = Hyperrectangle(lb, ub)
         mut.UniformHyperrectangleSampler(set=set)
-        sampler = mut.UniformHyperrectangleSampler(set=set, generator=generator)
+        sampler = mut.UniformHyperrectangleSampler(set=set,
+                                                   generator=generator)
         numpy_compare.assert_equal(sampler.Set().lb(), lb)
         numpy_compare.assert_equal(sampler.Set().ub(), ub)
         self.assertEqual(sampler.SamplePoints(num_points).shape, (3, 3))
@@ -60,11 +61,10 @@ class TestIrisFromCliqueCover(unittest.TestCase):
         ub = np.array([1, 1, 1])
         set = Hyperrectangle(lb, ub)
         generator = RandomGenerator(0)
-        base_sampler = mut.UniformHyperrectangleSampler(set=set, generator=generator)
+        base_sampler = mut.UniformHyperrectangleSampler(set=set,
+                                                        generator=generator)
         sampler = mut.RejectionSampler(sampler=base_sampler,
                                        rejection_fun=lambda x: np.any(x > 0.5))
         num_points = 7
-        self.assertEqual(sampler.SamplePoints(num_points).shape, (3, num_points))
-
-
-
+        self.assertEqual(sampler.SamplePoints(num_points).shape,
+                         (3, num_points))
