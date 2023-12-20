@@ -93,8 +93,16 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
       // The private virtual method of DoCheckCoverage is made public to enable
       // Python implementations to override it.
       bool DoCheckCoverage(const ConvexSets& current_sets) const override {
+        // Since DoCheckCoverage in the derived Python classes cannot assume
+        // ownership of the unique pointers, we need to pass Python the raw
+        // pointers.
+        std::vector<const geometry::optimization::ConvexSet*> sets;
+        sets.reserve(ssize(current_sets));
+        for (const auto& set : current_sets) {
+          sets.push_back(set.get());
+        }
         PYBIND11_OVERRIDE_PURE(
-            bool, CoverageCheckerBase, DoCheckCoverage, current_sets);
+            bool, CoverageCheckerBase, DoCheckCoverage, sets);
       }
     };
     const auto& cls_doc = doc.CoverageCheckerBase;
@@ -108,6 +116,46 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
               return self.CheckCoverage(CloneConvexSets(sets));
             },
             py::arg("sets"), cls_doc.CheckCoverage.doc);
+  }
+  {
+    const auto& cls_doc = doc.CoverageCheckerViaBernoulliTest;
+    py::class_<CoverageCheckerViaBernoulliTest, CoverageCheckerBase>(
+        m, "CoverageCheckerViaBernoulliTest", cls_doc.doc)
+        .def(py::init<const double, const int,
+                 std::shared_ptr<PointSamplerBase>, int, double>(),
+            py::arg("alpha"), py::arg("num_points_per_check"),
+            py::arg("sampler"), py::arg("num_threads") = -1,
+            py::arg("point_in_set_tol") = 1e-8, cls_doc.ctor.doc)
+        .def("get_alpha", &CoverageCheckerViaBernoulliTest::get_alpha,
+            cls_doc.get_alpha.doc)
+        .def("set_alpha", &CoverageCheckerViaBernoulliTest::set_alpha,
+            py::arg("alpha"), cls_doc.set_alpha.doc)
+        .def("get_num_points_per_check",
+            &CoverageCheckerViaBernoulliTest::get_num_points_per_check,
+            cls_doc.get_num_points_per_check.doc)
+        .def("set_num_points_per_check",
+            &CoverageCheckerViaBernoulliTest::set_num_points_per_check,
+            py::arg("num_points_per_check"),
+            cls_doc.set_num_points_per_check.doc)
+        .def("get_point_in_set_tol",
+            &CoverageCheckerViaBernoulliTest::get_point_in_set_tol,
+            cls_doc.get_point_in_set_tol.doc)
+        .def("set_point_in_set_tol",
+            &CoverageCheckerViaBernoulliTest::set_point_in_set_tol,
+            py::arg("point_in_set_tol"), cls_doc.set_point_in_set_tol.doc)
+        .def("get_num_threads",
+            &CoverageCheckerViaBernoulliTest::get_num_threads,
+            cls_doc.get_num_threads.doc)
+        .def("set_num_threads",
+            &CoverageCheckerViaBernoulliTest::set_num_threads,
+            py::arg("num_threads"), cls_doc.set_num_threads.doc)
+        .def("GetSampledCoverageFraction",
+            [](CoverageCheckerViaBernoulliTest& self,
+                const std::vector<geometry::optimization::ConvexSet*>& sets) {
+              return self.GetSampledCoverageFraction(CloneConvexSets(sets));
+            },
+            py::arg("sets"),
+            cls_doc.GetSampledCoverageFraction.doc);
   }
 }  // DefinePlanningIrisFromCliqueCover
 }  // namespace internal
