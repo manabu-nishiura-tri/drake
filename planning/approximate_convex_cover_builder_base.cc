@@ -158,7 +158,7 @@ std::queue<copyable_unique_ptr<ConvexSet>> SetBuilderWorker(
         ++clique_col;
       }
     }
-    ret.push(set_builder->BuildConvexSet(clique_points));
+    ret.emplace(set_builder->BuildConvexSet(clique_points));
   }
   return ret;
 }

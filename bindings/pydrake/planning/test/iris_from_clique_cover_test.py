@@ -4,7 +4,10 @@ import unittest
 
 import pydrake.planning as mut
 from pydrake.common.test_utilities import numpy_compare
-from pydrake.geometry.optimization import HPolyhedron, Hyperrectangle
+from pydrake.geometry.optimization import (HPolyhedron,
+                                           Hyperrectangle,
+                                           VPolytope,
+                                           IrisOptions)
 from pydrake.common import RandomGenerator
 
 import textwrap
@@ -206,3 +209,69 @@ class TestIrisFromCliqueCover(unittest.TestCase):
 
         self.assertEqual(A.shape, (num_points, num_points))
         self.assertIsInstance(A, scipy.sparse.csc_matrix)
+
+    def test_convex_set_from_clique_builder_base_subclassable(self):
+        class VPolytopeBuilder(mut.ConvexSetFromCliqueBuilderBase):
+            def __init__(self):
+                mut.ConvexSetFromCliqueBuilderBase.__init__(self)
+
+            def DoBuildConvexSet(self, clique_points):
+                return VPolytope(clique_points)
+
+        builder = VPolytopeBuilder()
+        points = np.array([
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0]
+        ])
+        vpolytope = builder.BuildConvexSet(points)
+        self.assertIsInstance(vpolytope, VPolytope)
+        np.testing.assert_array_equal(vpolytope.vertices(), points)
+
+    def test_iris_region_from_clique_builder(self):
+        options = IrisOptions()
+        options.iteration_limit = 3
+        obstacles = [HPolyhedron.MakeBox(np.zeros(2), np.ones(2))]
+        domain = HPolyhedron.MakeBox(np.zeros(2), 2 * np.ones(2))
+        rank_tol_for_lowner_john_ellipse = 1e-4
+
+        builder = mut.IrisRegionFromCliqueBuilder(
+            obstacles=obstacles,
+            domain=domain,
+            options=options,
+            rank_tol_for_lowner_john_ellipse=rank_tol_for_lowner_john_ellipse
+        )
+
+        self.assertEqual(builder.get_options().iteration_limit, 3)
+        self.assertEqual(len(builder.get_obstacles()), 1)
+        np.testing.assert_array_equal(builder.get_domain().A(), domain.A())
+        self.assertEqual(builder.get_rank_tol_for_lowner_john_ellipse(),
+                         rank_tol_for_lowner_john_ellipse)
+
+        options.iteration_limit = 1
+        builder.set_options(options=options)
+        self.assertEqual(builder.get_options().iteration_limit, 1)
+
+        obstacles.append(HPolyhedron.MakeBox(np.ones(2), 2*np.ones(2)))
+        builder.set_obstacles(obstacles)
+        self.assertEqual(len(builder.get_obstacles()), 2)
+
+        domain = HPolyhedron.MakeBox(np.zeros(2), 3 * np.ones(2))
+        builder.set_domain(domain)
+        np.testing.assert_array_equal(builder.get_domain().A(), domain.A())
+
+        builder.set_rank_tol_for_lowner_john_ellipse(1e-6)
+        self.assertEqual(builder.get_rank_tol_for_lowner_john_ellipse(), 1e-6)
+
+        clique = np.array([
+            [0.1, 0.4, 0.9],
+            [1.1, 1.4, 1.3]
+            ]
+        )
+        region = builder.BuildConvexSet(clique)
+        self.assertIsInstance(region, HPolyhedron)
+        self.assertTrue(
+            region.ContainedIn(
+                HPolyhedron.MakeBox(np.array([0,1]), np.array([1,3]))
+            )
+        )
+

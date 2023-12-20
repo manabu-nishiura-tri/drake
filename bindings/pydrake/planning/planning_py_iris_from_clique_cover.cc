@@ -189,6 +189,90 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
             py::arg("checker"), py::arg("parallelize") = true,
             cls_doc.ctor.doc);
   }
+
+  // ConvexSetFromCliqueBuilderBase and IrisRegionFromCliqueBuilder
+  {
+    class PyConvexSetFromCliqueBuilderBase
+        : public py::wrapper<ConvexSetFromCliqueBuilderBase> {
+     public:
+      // Trampoline virtual methods.
+      // The private virtual method of DoBuildConvexSet is made public to enable
+      // Python implementations to override it.
+      std::unique_ptr<ConvexSet> DoBuildConvexSet(
+          const Eigen::Ref<const Eigen::MatrixXd>& clique_points) override {
+        PYBIND11_OVERRIDE_PURE(std::unique_ptr<ConvexSet>,
+            ConvexSetFromCliqueBuilderBase, DoBuildConvexSet, clique_points);
+      }
+    };
+    const auto& cls_doc = doc.ConvexSetFromCliqueBuilderBase;
+    py::class_<ConvexSetFromCliqueBuilderBase,
+        PyConvexSetFromCliqueBuilderBase>(
+        m, "ConvexSetFromCliqueBuilderBase", cls_doc.doc)
+        .def(py::init<>(), cls_doc.ctor.doc)
+        .def("BuildConvexSet", &ConvexSetFromCliqueBuilderBase::BuildConvexSet,
+            cls_doc.BuildConvexSet.doc);
+  }
+  {
+    py::class_<DefaultIrisOptionsForIrisRegionFromCliqueBuilder>(m,
+        "DefaultIrisOptionsForIrisRegionFromCliqueBuilder",
+        doc.DefaultIrisOptionsForIrisRegionFromCliqueBuilder.doc);
+    const auto& cls_doc = doc.IrisRegionFromCliqueBuilder;
+    using Class = IrisRegionFromCliqueBuilder;
+    py::class_<Class, ConvexSetFromCliqueBuilderBase>(
+        m, "IrisRegionFromCliqueBuilder", cls_doc.doc)
+        //        .def(py::init<const ConvexSets&, const HPolyhedron&, const
+        //        IrisOptions&,
+        //                 const double>(),
+        //            py::arg("obstacles"), py::arg("domain"),
+        //            py::arg("options") =
+        //                DefaultIrisOptionsForIrisRegionFromCliqueBuilder(),
+        //            py::arg("rank_tol_for_lowner_john_ellipse") = 1e-6,
+        //            cls_doc.ctor.doc)
+        .def(py::init([](const std::vector<ConvexSet*>& obstacles,
+                          const HPolyhedron& domain, const IrisOptions& options,
+                          const double rank_tol_for_lowner_john_ellipse) {
+          return Class(CloneConvexSets(obstacles), domain, options,
+              rank_tol_for_lowner_john_ellipse);
+        }),
+            py::arg("obstacles"), py::arg("domain"),
+            py::arg("options") =
+                DefaultIrisOptionsForIrisRegionFromCliqueBuilder(),
+            py::arg("rank_tol_for_lowner_john_ellipse") = 1e-6,
+            cls_doc.ctor.doc)
+        .def(
+            "get_obstacles",
+            [](const Class& self) {
+              std::vector<std::unique_ptr<geometry::optimization::ConvexSet>>
+                  ret;
+              ret.reserve(self.get_obstacles().size());
+              for (const auto& set : self.get_obstacles()) {
+                ret.emplace_back(set->Clone());
+              }
+              return ret;
+            },
+            cls_doc.get_obstacles.doc)
+        .def(
+            "set_obstacles",
+            [](Class& self,
+                const std::vector<geometry::optimization::ConvexSet*>& sets) {
+              return self.set_obstacles(CloneConvexSets(sets));
+            },
+            py::arg("obstacles"), cls_doc.set_obstacles.doc)
+        .def("get_domain", &Class::get_domain, cls_doc.get_domain.doc)
+        .def("set_domain", &Class::set_domain, py::arg("domain"),
+            cls_doc.set_domain.doc)
+        .def("get_options", &Class::get_options, cls_doc.get_options.doc)
+        .def("set_options", &Class::set_options, py::arg("options"),
+            cls_doc.set_options.doc)
+        .def("get_rank_tol_for_lowner_john_ellipse",
+            &Class::get_rank_tol_for_lowner_john_ellipse,
+            cls_doc.get_rank_tol_for_lowner_john_ellipse.doc)
+        .def("set_rank_tol_for_lowner_john_ellipse",
+            &Class::set_rank_tol_for_lowner_john_ellipse,
+            py::arg("rank_tol_for_lowner_john_ellipse"),
+            cls_doc.set_rank_tol_for_lowner_john_ellipse.doc);
+  }
+
 }  // DefinePlanningIrisFromCliqueCover
 }  // namespace internal
 }  // namespace pydrake
