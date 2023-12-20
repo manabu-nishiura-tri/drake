@@ -149,13 +149,45 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
         .def("set_num_threads",
             &CoverageCheckerViaBernoulliTest::set_num_threads,
             py::arg("num_threads"), cls_doc.set_num_threads.doc)
-        .def("GetSampledCoverageFraction",
+        .def(
+            "GetSampledCoverageFraction",
             [](CoverageCheckerViaBernoulliTest& self,
                 const std::vector<geometry::optimization::ConvexSet*>& sets) {
               return self.GetSampledCoverageFraction(CloneConvexSets(sets));
             },
-            py::arg("sets"),
-            cls_doc.GetSampledCoverageFraction.doc);
+            py::arg("sets"), cls_doc.GetSampledCoverageFraction.doc);
+  }
+
+  // AdjacencyMatrixBuilderBase
+  {
+    class PyAdjacencyMatrixBuilderBase
+        : public py::wrapper<AdjacencyMatrixBuilderBase> {
+     public:
+      // Trampoline virtual methods.
+      // The private virtual method of DoSamplePoints is made public to enable
+      // Python implementations to override it.
+      Eigen::SparseMatrix<bool> DoBuildAdjacencyMatrix(
+          const Eigen::Ref<const Eigen::MatrixXd>& points) const override {
+        PYBIND11_OVERRIDE_PURE(Eigen::SparseMatrix<bool>,
+            AdjacencyMatrixBuilderBase, DoBuildAdjacencyMatrix, points);
+      }
+    };
+    const auto& cls_doc = doc.AdjacencyMatrixBuilderBase;
+
+    py::class_<AdjacencyMatrixBuilderBase, PyAdjacencyMatrixBuilderBase>(
+        m, "AdjacencyMatrixBuilderBase", cls_doc.doc)
+        .def(py::init<>(), cls_doc.ctor.doc)
+        .def("BuildAdjacencyMatrix",
+            &AdjacencyMatrixBuilderBase::BuildAdjacencyMatrix,
+            py::arg("points"), cls_doc.BuildAdjacencyMatrix.doc);
+  }
+  {
+    const auto& cls_doc = doc.VisibilityGraphBuilder;
+    py::class_<VisibilityGraphBuilder, AdjacencyMatrixBuilderBase>(
+        m, "VisibilityGraphBuilder", cls_doc.doc)
+        .def(py::init<std::shared_ptr<CollisionChecker>, bool>(),
+            py::arg("checker"), py::arg("parallelize") = true,
+            cls_doc.ctor.doc);
   }
 }  // DefinePlanningIrisFromCliqueCover
 }  // namespace internal

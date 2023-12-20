@@ -7,8 +7,52 @@ from pydrake.common.test_utilities import numpy_compare
 from pydrake.geometry.optimization import HPolyhedron, Hyperrectangle
 from pydrake.common import RandomGenerator
 
+import textwrap
+import scipy.sparse
+
 
 class TestIrisFromCliqueCover(unittest.TestCase):
+    def _make_robot_diagram(self):
+        # Code taken from
+        # bindings/pydrake/planning/test/collision_checker_test.py
+        builder = mut.RobotDiagramBuilder()
+        scene_yaml = textwrap.dedent("""
+        directives:
+        - add_model:
+            name: box
+            file: package://drake/multibody/models/box.urdf
+        - add_model:
+            name: ground
+            file: package://drake/planning/test_utilities/collision_ground_plane.sdf  # noqa
+        - add_weld:
+            parent: world
+            child: ground::ground_plane_box
+        """)
+        builder.parser().AddModelsFromString(scene_yaml, "dmd.yaml")
+        model_instance_index = builder.plant().GetModelInstanceByName("box")
+        robot_diagram = builder.Build()
+        return (robot_diagram, model_instance_index)
+    def _make_scene_graph_collision_checker(self, use_provider, use_function):
+        # Code taken from
+        # bindings/pydrake/planning/test/collision_checker_test.py
+        self.assertFalse(use_provider and use_function)
+
+        robot, index = self._make_robot_diagram()
+        plant = robot.plant()
+        checker_kwargs = dict(
+            model=robot,
+            robot_model_instances=[index],
+            edge_step_size=0.125)
+
+        if use_provider:
+            checker_kwargs["distance_and_interpolation_provider"] = \
+                mut.LinearDistanceAndInterpolationProvider(plant)
+        if use_function:
+            checker_kwargs["configuration_distance_function"] = \
+                self._configuration_distance
+
+        return mut.SceneGraphCollisionChecker(**checker_kwargs)
+
     def test_point_sampler_base_subclassable(self):
         class UniformHPolyhedronSamplerManual(mut.PointSamplerBase):
             def __init__(self, set, generator):
@@ -132,3 +176,33 @@ class TestIrisFromCliqueCover(unittest.TestCase):
         )
         self.assertEqual(default_checker.get_num_threads(), -1)
         self.assertEqual(default_checker.get_point_in_set_tol(), 1e-8)
+
+    def test_adjacency_matrix_base_is_subclassable(self):
+        class FullAdjacencyMatrix(mut.AdjacencyMatrixBuilderBase):
+            def __init__(self):
+                mut.AdjacencyMatrixBuilderBase.__init__(self)
+            def DoBuildAdjacencyMatrix(self, points):
+                return np.ones((points.shape[1], points.shape[1]))
+
+        builder = FullAdjacencyMatrix()
+        x = np.linspace(0, 1, 10)
+        points = np.vstack([x]*4)
+        adjacency = builder.BuildAdjacencyMatrix(points)
+        np.testing.assert_array_equal(adjacency.toarray(),
+                                      np.ones((points.shape[1], points.shape[1])))
+        self.assertIsInstance(adjacency, scipy.sparse.csc_matrix)
+
+    def test_visibility_graph_builder(self):
+
+        checker = self._make_scene_graph_collision_checker(True, False)
+        builder = mut.VisibilityGraphBuilder(checker=checker, parallelize=True)
+        plant = checker.model().plant()
+        num_points = 2
+        points = np.empty((plant.num_positions(), num_points))
+        points[:, 0] = plant.GetPositions(checker.plant_context())
+        points[:, 1] = points[:, 0]
+        points[-1, 1] += 0.1
+        A = builder.BuildAdjacencyMatrix(points=points)
+
+        self.assertEqual(A.shape, (num_points, num_points))
+        self.assertIsInstance(A, scipy.sparse.csc_matrix)
