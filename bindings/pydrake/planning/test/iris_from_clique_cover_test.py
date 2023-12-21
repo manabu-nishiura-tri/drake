@@ -9,6 +9,7 @@ from pydrake.geometry.optimization import (HPolyhedron,
                                            VPolytope,
                                            IrisOptions)
 from pydrake.common import RandomGenerator
+from pydrake.planning import MaxCliqueSolverViaMip
 
 import textwrap
 import scipy.sparse
@@ -275,3 +276,153 @@ class TestIrisFromCliqueCover(unittest.TestCase):
             )
         )
 
+    def test_approximate_convex_cover_from_clique_cover_options(self):
+        options = mut.ApproximateConvexCoverFromCliqueCoverOptions()
+
+        options.num_sampled_points = 10
+        self.assertEqual(options.num_sampled_points, 10)
+
+        options.minimum_clique_size = 5
+        self.assertEqual(options.minimum_clique_size, 5)
+
+    def test_approximate_convex_cover_from_clique_cover(self):
+        class BadCoverageChecker(mut.CoverageCheckerBase):
+            def __init__(self):
+                mut.CoverageCheckerBase.__init__(self)
+
+            def DoCheckCoverage(self, current_sets):
+                return len(current_sets) > 0
+
+        coverage_checker = BadCoverageChecker()
+
+        class BadPointSampler(mut.PointSamplerBase):
+            def __init__(self):
+                mut.PointSamplerBase.__init__(self)
+            def DoSamplePoints(self, num_points):
+                clique = np.array([
+                    [0.1, 0.4, 0.9, 0.8],
+                    [1.1, 1.4, 1.3, 1.2]
+                ]
+                )
+                return clique
+
+        point_sampler = BadPointSampler()
+        class FullAdjacencyMatrixBuilder(mut.AdjacencyMatrixBuilderBase):
+            def __init__(self):
+                mut.AdjacencyMatrixBuilderBase.__init__(self)
+            def DoBuildAdjacencyMatrix(self, points):
+                return np.ones((points.shape[1], points.shape[1]))
+
+        adjacency_matrix_builder = FullAdjacencyMatrixBuilder()
+
+        class BadCliqueSolver(mut.MaxCliqueSolverBase):
+            def __init__(self):
+                mut.MaxCliqueSolverBase.__init__(self)
+
+            def DoSolveMaxClique(self, adjacency_matrix):
+                return np.ones(adjacency_matrix.shape[0])
+
+        max_clique_solver = BadCliqueSolver()
+
+        class VPolytopeSetBuilder(mut.ConvexSetFromCliqueBuilderBase):
+            def __init__(self):
+                mut.ConvexSetFromCliqueBuilderBase.__init__(self)
+            def DoBuildConvexSet(self, clique_points):
+                return VPolytope(clique_points)
+
+        num_set_builders = 10
+        set_builders = [VPolytopeSetBuilder() for _ in range(num_set_builders)]
+        options = mut.ApproximateConvexCoverFromCliqueCoverOptions()
+
+
+        sets = mut.ApproximateConvexCoverFromCliqueCover(coverage_checker=coverage_checker,
+                                                         point_sampler=point_sampler,
+                                                         adjacency_matrix_builder=adjacency_matrix_builder,
+                                                         max_clique_solver=max_clique_solver,
+                                                         set_builders=set_builders,
+                                                         options=options)
+        self.assertGreaterEqual(len(sets), 1)
+        self.assertIsInstance(sets[0], VPolytope)
+
+    def test_iris_from_clique_cover_options(self):
+        options = mut.IrisFromCliqueCoverOptions()
+        custom_iris_options = IrisOptions()
+        custom_iris_options.iteration_limit = 25
+
+        options.iris_options = custom_iris_options
+        self.assertEqual(options.iris_options.iteration_limit,
+                         custom_iris_options.iteration_limit)
+
+        options.coverage_termination_threshold = 0.9
+        self.assertEqual(options.coverage_termination_threshold, 0.9)
+
+        options.num_points_per_coverage_check = int(1e8)
+        self.assertEqual(options.num_points_per_coverage_check, int(1e8))
+
+        options.minimum_clique_size = 10
+        self.assertEqual(options.minimum_clique_size, 10)
+
+        options.num_points_per_visibility_round = int(1e9)
+        self.assertEqual(options.num_points_per_visibility_round, int(1e9))
+
+        options.point_sampler = mut.UniformHyperrectangleSampler(
+            set=Hyperrectangle(np.array([0, 0]), np.array([1, 1])),
+        )
+        self.assertIsInstance(options.point_sampler, mut.UniformHyperrectangleSampler)
+
+        options.num_builders = 10
+        self.assertEqual(options.num_builders, 10)
+
+        options.generator = RandomGenerator(0)
+        val = RandomGenerator(0)()
+        self.assertEqual(options.generator(), val)
+
+        class BadCliqueSolver(mut.MaxCliqueSolverBase):
+            def __init__(self):
+                mut.MaxCliqueSolverBase.__init__(self)
+
+            def DoSolveMaxClique(self, adjacency_matrix):
+                return np.ones(adjacency_matrix.shape[0])
+
+        self.assertIsInstance(options.max_clique_solver,
+                              mut.MaxCliqueSolverViaMip)
+        options2 = mut.IrisFromCliqueCoverOptions(BadCliqueSolver())
+        self.assertIsInstance(options2.max_clique_solver, BadCliqueSolver)
+
+
+
+    def test_iris_from_clique_cover(self):
+        """
+        A 1x1 box domain with a 0.45x0.45 obstacle in each corner. The free
+        space is a cross composed to the union of
+        Box1 with vertices (0.45,0), (0.45, 1), (0.55, 0), (0.55, 1)
+        and
+        Box2 with vertices (0, 0.45), (0, 0.55), (1, 0.45), (1, 0.55)
+        """
+        domain = HPolyhedron.MakeBox(np.array([0, 0]), np.array([1, 1]))
+
+        obstacles = [
+            HPolyhedron.MakeBox(np.array([0, 0]), np.array([0.45, 0.45])),
+            HPolyhedron.MakeBox(np.array([0.55, 0]), np.array([1, 0.45])),
+            HPolyhedron.MakeBox(np.array([0, 0.55]), np.array([0.45, 1])),
+            HPolyhedron.MakeBox(np.array([0.55, 0.55]), np.array([1, 1]))]
+
+        options = mut.IrisFromCliqueCoverOptions()
+        options.num_builders = 3
+        options.num_points_per_coverage_check = 100
+        options.num_points_per_visibility_round = 100
+
+        sets = mut.IrisFromCliqueCover(
+            obstacles=obstacles, domain=domain, options=options, sets=[]
+        )
+        self.assertEqual(len(sets), 2)
+
+        # Check that we can pass some sets and they are used.
+        first_set = sets[0]
+        sets = [sets[0]]
+        sets = mut.IrisFromCliqueCover(
+            obstacles=obstacles, domain=domain, options=options, sets=sets
+        )
+        np.testing.assert_array_equal(sets[0].A(), first_set.A())
+        np.testing.assert_array_equal(sets[0].b(), first_set.b())
+        self.assertEqual(len(sets), 2)

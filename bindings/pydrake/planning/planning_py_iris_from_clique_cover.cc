@@ -32,6 +32,8 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
       // The private virtual method of DoSamplePoints is made public to enable
       // Python implementations to override it.
       Eigen::MatrixXd DoSamplePoints(int num_points) override {
+        /* Acquire GIL before calling Python code */
+        py::gil_scoped_acquire acquire;
         PYBIND11_OVERRIDE_PURE(
             Eigen::MatrixXd, PointSamplerBase, DoSamplePoints, num_points);
       }
@@ -101,6 +103,8 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
         for (const auto& set : current_sets) {
           sets.push_back(set.get());
         }
+        /* Acquire GIL before calling Python code */
+        py::gil_scoped_acquire acquire;
         PYBIND11_OVERRIDE_PURE(
             bool, CoverageCheckerBase, DoCheckCoverage, sets);
       }
@@ -168,6 +172,8 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
       // Python implementations to override it.
       Eigen::SparseMatrix<bool> DoBuildAdjacencyMatrix(
           const Eigen::Ref<const Eigen::MatrixXd>& points) const override {
+        /* Acquire GIL before calling Python code */
+        py::gil_scoped_acquire acquire;
         PYBIND11_OVERRIDE_PURE(Eigen::SparseMatrix<bool>,
             AdjacencyMatrixBuilderBase, DoBuildAdjacencyMatrix, points);
       }
@@ -200,8 +206,14 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
       // Python implementations to override it.
       std::unique_ptr<ConvexSet> DoBuildConvexSet(
           const Eigen::Ref<const Eigen::MatrixXd>& clique_points) override {
-        PYBIND11_OVERRIDE_PURE(std::unique_ptr<ConvexSet>,
-            ConvexSetFromCliqueBuilderBase, DoBuildConvexSet, clique_points);
+        /* Release the GIL */
+        py::gil_scoped_release release;
+        {
+          /* Acquire GIL before calling Python code */
+          py::gil_scoped_acquire acquire;
+          PYBIND11_OVERRIDE_PURE(std::unique_ptr<ConvexSet>,
+              ConvexSetFromCliqueBuilderBase, DoBuildConvexSet, clique_points);
+        }
       }
     };
     const auto& cls_doc = doc.ConvexSetFromCliqueBuilderBase;
@@ -220,14 +232,6 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
     using Class = IrisRegionFromCliqueBuilder;
     py::class_<Class, ConvexSetFromCliqueBuilderBase>(
         m, "IrisRegionFromCliqueBuilder", cls_doc.doc)
-        //        .def(py::init<const ConvexSets&, const HPolyhedron&, const
-        //        IrisOptions&,
-        //                 const double>(),
-        //            py::arg("obstacles"), py::arg("domain"),
-        //            py::arg("options") =
-        //                DefaultIrisOptionsForIrisRegionFromCliqueBuilder(),
-        //            py::arg("rank_tol_for_lowner_john_ellipse") = 1e-6,
-        //            cls_doc.ctor.doc)
         .def(py::init([](const std::vector<ConvexSet*>& obstacles,
                           const HPolyhedron& domain, const IrisOptions& options,
                           const double rank_tol_for_lowner_john_ellipse) {
@@ -271,6 +275,95 @@ void DefinePlanningIrisFromCliqueCover(py::module m) {
             &Class::set_rank_tol_for_lowner_john_ellipse,
             py::arg("rank_tol_for_lowner_john_ellipse"),
             cls_doc.set_rank_tol_for_lowner_john_ellipse.doc);
+  }
+  // ApproximateConvexCoverFromCliqueCover
+  {
+    auto cls_doc = doc.ApproximateConvexCoverFromCliqueCoverOptions;
+    py::class_<ApproximateConvexCoverFromCliqueCoverOptions>(
+        m, "ApproximateConvexCoverFromCliqueCoverOptions", cls_doc.doc)
+        .def(py::init<>())
+        .def_readwrite("num_sampled_points",
+            &ApproximateConvexCoverFromCliqueCoverOptions::num_sampled_points,
+            cls_doc.num_sampled_points.doc)
+        .def_readwrite("minimum_clique_size",
+            &ApproximateConvexCoverFromCliqueCoverOptions::minimum_clique_size,
+            cls_doc.minimum_clique_size.doc);
+    m.def(
+        "ApproximateConvexCoverFromCliqueCover",
+        [](CoverageCheckerBase* coverage_checker,
+            PointSamplerBase* point_sampler,
+            AdjacencyMatrixBuilderBase* adjacency_matrix_builder,
+            MaxCliqueSolverBase* max_clique_solver,
+            const std::vector<std::unique_ptr<ConvexSetFromCliqueBuilderBase>>&
+                set_builders,
+            const ApproximateConvexCoverFromCliqueCoverOptions& options) {
+          ConvexSets convex_sets;
+          ApproximateConvexCoverFromCliqueCover(coverage_checker, point_sampler,
+              adjacency_matrix_builder, max_clique_solver, set_builders,
+              options, &convex_sets);
+          std::vector<std::unique_ptr<ConvexSet>> returned_sets;
+          returned_sets.reserve(ssize(convex_sets));
+          for (auto& set : convex_sets) {
+            returned_sets.emplace_back(std::move(set));
+          }
+          return returned_sets;
+        },
+        py::arg("coverage_checker"), py::arg("point_sampler"),
+        py::arg("adjacency_matrix_builder"), py::arg("max_clique_solver"),
+        py::arg("set_builders"), py::arg("options"),
+        doc.ApproximateConvexCoverFromCliqueCover.doc);
+  }
+  {
+    auto cls_doc = doc.IrisFromCliqueCoverOptions;
+    py::class_<IrisFromCliqueCoverOptions>(
+        m, "IrisFromCliqueCoverOptions", cls_doc.doc)
+        .def(py::init<>())
+        // A Python specific constructor to allow the clique cover solver to be set.
+        .def(py::init([](std::unique_ptr<MaxCliqueSolverBase> solver){
+          IrisFromCliqueCoverOptions ret{};
+          ret.max_clique_solver = std::move(solver);
+          return ret;
+        }), py::arg("solver"))
+        .def_readwrite("iris_options",
+            &IrisFromCliqueCoverOptions::iris_options, cls_doc.iris_options.doc)
+        .def_readwrite("coverage_termination_threshold",
+            &IrisFromCliqueCoverOptions::coverage_termination_threshold,
+            cls_doc.coverage_termination_threshold.doc)
+        .def_readwrite("num_points_per_coverage_check",
+            &IrisFromCliqueCoverOptions::num_points_per_coverage_check,
+            cls_doc.num_points_per_coverage_check.doc)
+        .def_readwrite("minimum_clique_size",
+            &IrisFromCliqueCoverOptions::minimum_clique_size,
+            cls_doc.minimum_clique_size.doc)
+        .def_readwrite("num_points_per_visibility_round",
+            &IrisFromCliqueCoverOptions::num_points_per_visibility_round,
+            cls_doc.num_points_per_visibility_round.doc)
+        .def_readwrite("point_sampler",
+            &IrisFromCliqueCoverOptions::point_sampler,
+            cls_doc.point_sampler.doc)
+        .def_readwrite("num_builders",
+            &IrisFromCliqueCoverOptions::num_builders, cls_doc.num_builders.doc)
+        .def_readwrite("generator", &IrisFromCliqueCoverOptions::generator,
+            cls_doc.generator.doc)
+        .def_property_readonly(
+            "max_clique_solver",
+            [](const IrisFromCliqueCoverOptions& self) {
+              return self.max_clique_solver.get();
+            },
+            py_rvp::reference_internal);
+    m.def(
+        "IrisFromCliqueCover",
+        [](const std::vector<geometry::optimization::ConvexSet*>& obstacles,
+            const HPolyhedron& domain,
+            const IrisFromCliqueCoverOptions& options,
+            std::vector<HPolyhedron> sets) {
+          IrisFromCliqueCover(
+              CloneConvexSets(obstacles), domain, options, &sets);
+          return sets;
+          ;
+        },
+        py::arg("obstacles"), py::arg("domain"), py::arg("options"),
+        py::arg("sets"), doc.IrisFromCliqueCover.doc);
   }
 
 }  // DefinePlanningIrisFromCliqueCover
