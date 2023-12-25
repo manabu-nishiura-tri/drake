@@ -162,6 +162,25 @@ std::queue<copyable_unique_ptr<ConvexSet>> SetBuilderWorker(
         ++clique_col;
       }
     }
+    std::cout<<"Inside SetBuilderWorker"<<std::endl;
+    std::cout<<"printing clique points"<<std::endl;
+    size_t n_col = clique_points.cols();
+    size_t n_row = clique_points.rows();
+    int col_index = 0;
+    int row_index = 0;
+    for (size_t i = 0; i<n_row; i++) {
+      col_index = 0;
+      for (size_t j = 0; j<n_col; j++) {
+        if (j < n_col-1) {
+          std::cout<<clique_points(row_index, col_index)<<",";
+        }
+        else {
+          std::cout<<clique_points(row_index, col_index)<<"."<<std::endl;
+        }
+        col_index += 1;
+      }
+      row_index += 1;
+    }
     ret.emplace(set_builder->BuildConvexSet(clique_points));
   }
   std::cout << "builder returning " << ssize(ret) << " sets" << std::endl;
@@ -197,6 +216,23 @@ void ApproximateConvexCoverFromCliqueCover(
   while (!coverage_checker->CheckCoverage(*convex_sets)) {
     const Eigen::MatrixXd points =
         point_sampler->SamplePoints(options.num_sampled_points);
+    size_t n_col = points.cols();
+    size_t n_row = points.rows();
+    int col_index = 0;
+    int row_index = 0;
+    for (size_t i = 0; i<n_row; i++) {
+      col_index = 0;
+      for (size_t j = 0; j<n_col; j++) {
+        if (j < n_col-1) {
+          std::cout<<points(row_index, col_index)<<",";
+        }
+        else {
+          std::cout<<points(row_index, col_index)<<"."<<std::endl;
+        }
+        col_index += 1;
+      }
+      row_index += 1;
+    }
     Eigen::SparseMatrix<bool> adjacency_matrix =
         adjacency_matrix_builder->BuildAdjacencyMatrix(points);
     std::cout << fmt::format("adjacency_matrix edges = {}", adjacency_matrix.nonZeros()/2) << std::endl;

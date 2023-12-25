@@ -346,6 +346,9 @@ drake_cc_library(
         "//geometry/optimization:convex_set",
         "//geometry/optimization:iris",
         ":convex_set_from_clique_builder_base",
+        "//multibody/parsing:parser",
+        ":scene_graph_collision_checker",
+        ":robot_diagram_builder",
     ],
 )
 

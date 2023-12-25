@@ -10,6 +10,7 @@
 #include "drake/common/random.h"
 #include "drake/geometry/optimization/convex_set.h"
 #include "drake/geometry/optimization/hpolyhedron.h"
+#include "drake/geometry/optimization/vpolytope.h"
 #include "drake/planning/adjacency_matrix_builder_base.h"
 #include "drake/planning/approximate_convex_cover_builder_base.h"
 #include "drake/planning/coverage_checker_via_bernoulli_test.h"
@@ -24,6 +25,7 @@ namespace drake {
 namespace planning {
 using geometry::optimization::ConvexSets;
 using geometry::optimization::HPolyhedron;
+using geometry::optimization::VPolytope;
 
 namespace {
 using Eigen::Triplet;
@@ -278,9 +280,52 @@ void IrisInConfigurationSpaceFromCliqueCover(
 
   // Now put the HPolyhedra back into sets.
   sets->reserve(abstract_sets.size());
+  int set_index = 0;
   for (auto& abstract_set : abstract_sets) {
     std::unique_ptr<HPolyhedron> set{
         dynamic_cast<HPolyhedron*>(abstract_set.release())};
+    auto A = set->A();
+    auto b = set->b();
+    auto set_copy = *set.release();
+    VPolytope poly(set_copy);
+    auto minimal_poly = poly.GetMinimalRepresentation();
+    std::cout<<"set "<<set_index<<std::endl;
+    std::cout<<"\tvertices"<<std::endl;
+    //auto vertices =  poly.vertices();
+    auto vertices =  minimal_poly.vertices();
+    size_t n_col = vertices.cols();
+    size_t n_row = vertices.rows();
+    int col_index = 0;
+    int row_index = 0;
+    for (size_t i = 0; i<n_row; i++) {
+      col_index = 0;
+      for (size_t j = 0; j<n_col; j++) {
+        if (j < n_col-1) {
+          std::cout<<vertices(row_index, col_index)<<",";
+        }
+        else {
+          std::cout<<vertices(row_index, col_index)<<"."<<std::endl;
+        }
+        col_index += 1;
+      }
+      row_index += 1;
+    }
+    std::cout<<"\tA :"<<", rows:"<<A.rows()<<", cols:"<<A.cols()<<std::endl;
+    for (int i=0;i<A.rows();i++) {
+      for (int j=0;j<A.cols();j++) {
+        std::cout<<A(i,j)<<",";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"\n";
+    std::cout<<"\tb :"<<", rows:"<<b.rows()<<", cols:"<<b.cols()<<std::endl;
+    for (int i=0;i<b.rows();i++) {
+      for (int j=0;j<b.cols();j++) {
+        std::cout<<b(i,j)<<",";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"\n";
     sets->emplace_back(set->A(), set->b());
   }
 }

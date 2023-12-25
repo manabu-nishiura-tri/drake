@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "drake/common/symbolic/expression.h"
 #include "drake/geometry/optimization/cartesian_product.h"
@@ -448,6 +449,24 @@ HPolyhedron IrisInConfigurationSpace(const MultibodyPlant<double>& plant,
   plant.ValidateContext(context);
   const int nq = plant.num_positions();
   const Eigen::VectorXd seed = plant.GetPositions(context);
+  std::cout<<"In IrisInConfigurationSpace"<<std::endl;
+  size_t n_col = seed.cols();
+  size_t n_row = seed.rows();
+  int col_index = 0;
+  int row_index = 0;
+  for (size_t i = 0; i<n_row; i++) {
+    col_index = 0;
+    for (size_t j = 0; j<n_col; j++) {
+      if (j < n_col-1) {
+        std::cout<<seed(row_index, col_index)<<",";
+      }
+      else {
+        std::cout<<seed(row_index, col_index)<<"."<<std::endl;
+      }
+      col_index += 1;
+    }
+    row_index += 1;
+  }
   const int nc = static_cast<int>(options.configuration_obstacles.size());
   // Note: We require finite joint limits to define the bounding box for the
   // IRIS algorithm.
