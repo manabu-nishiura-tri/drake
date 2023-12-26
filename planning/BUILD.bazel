@@ -349,6 +349,11 @@ drake_cc_library(
         "//multibody/parsing:parser",
         ":scene_graph_collision_checker",
         ":robot_diagram_builder",
+        "//common:find_resource",
+    ],
+    data = [
+        ":2d_arms",
+        "//manipulation/models/iiwa_description:models",
     ],
 )
 

@@ -1,7 +1,9 @@
 #include <iostream>
 #include "drake/planning/iris_region_from_clique_builder.h"
 
+#include "drake/common/find_resource.h"
 #include "drake/geometry/optimization/hyperellipsoid.h"
+#include "drake/math/rigid_transform.h"
 #include "drake/multibody/parsing/parser.h"
 #include "drake/multibody/plant/multibody_plant.h"
 #include "drake/systems/framework/context.h"
@@ -10,10 +12,13 @@
 
 namespace drake {
 namespace planning {
+using Eigen::Vector3d;
 using geometry::optimization::ConvexSets;
 using geometry::optimization::Hyperellipsoid;
 using geometry::optimization::IrisOptions;
 using planning::CollisionCheckerParams;
+using math::RigidTransform;
+using math::RollPitchYawd;
 using multibody::Parser;
 using systems::Context;
 using planning::RobotDiagramBuilder;
@@ -93,6 +98,7 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
     center_q(i) = center(i,0);
     std::cout<<"center_q("<<i<<")"<<center_q(i)<<std::endl;
   }
+  /*
   drake::multibody::MultibodyPlant<double> *plant_tmp;
   drake::systems::DiagramBuilder<double> builder;
   drake::geometry::SceneGraph<double>* scene_graph;
@@ -153,7 +159,13 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
   //plant_tmp->SetPositions(&plant_context_tmp.mutable_plant_context(), center_q);
   //plant_tmp->SetPositions(context_tmp.get(), center_q);
   // TODO: cast context_tmp to const Context<double>& context
+  return std::move(geometry::optimization::IrisInConfigurationSpace(
+                       *plant_tmp, *context_tmp, options_))
+      .Clone();
+  */
 
+  /*
+  // Followings are only for boxes_in_corners file.
   CollisionCheckerParams params;
   RobotDiagramBuilder<double> robod_builder(0.0);
   params.robot_model_instances = robod_builder.parser().AddModelsFromString(
@@ -169,12 +181,62 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
       dut.MakeStandaloneModelContext();
   const Context<double>& standalone_plant_context =
       dut.UpdateContextPositions(collision_context.get(), center_q);
-
-  /*
-  return std::move(geometry::optimization::IrisInConfigurationSpace(
-                       *plant_tmp, *context_tmp, options_))
-      .Clone();
   */
+
+  // Load 2d arms assets.
+  auto oneDoF_iiwa_asset = FindResourceOrThrow(
+      "drake/planning/2d_arms/oneDOF_iiwa7_with_box_collision.sdf");
+  auto twoDoF_iiwa_asset = FindResourceOrThrow(
+      "drake/planning/2d_arms/twoDOF_iiwa7_with_box_collision.sdf");
+  auto box_asset = FindResourceOrThrow(
+      "drake/planning/2d_arms/box_small.urdf");
+  // We can use model directives file instead.
+
+  CollisionCheckerParams params;
+  RobotDiagramBuilder<double> robod_builder(0.0);
+  params.robot_model_instances.push_back(
+      robod_builder.parser().AddModelFromFile(box_asset));
+  params.robot_model_instances.push_back(
+      robod_builder.parser().AddModelFromFile(twoDoF_iiwa_asset));
+  params.robot_model_instances.push_back(
+      robod_builder.parser().AddModelFromFile(oneDoF_iiwa_asset));
+  auto& plant = robod_builder.plant();
+
+  // Weld box scene and arms to world.
+  // We can use model directives file instead.
+  // TODO:
+  // get transform vector from parameter file or something.
+  plant.WeldFrames(plant.world_frame(),
+      plant.GetFrameByName(
+        "base", plant.GetModelInstanceByName("box_scene")),
+      RigidTransform(Vector3d{0.0, 0.0, 0.0})
+      );
+  plant.WeldFrames(plant.world_frame(),
+      plant.GetFrameByName(
+        "iiwa_twoDOF_link_0",
+        plant.GetModelInstanceByName("iiwa7_twoDOF")),
+      RigidTransform(
+        RollPitchYawd(0.0, 0.0, -M_PI/2.).ToRotationMatrix(),
+        Vector3d{0.0, 0.55, 0.0}));
+  plant.WeldFrames(plant.world_frame(),
+      plant.GetFrameByName(
+        "iiwa_oneDOF_link_0",
+        plant.GetModelInstanceByName("iiwa7_oneDOF")),
+      RigidTransform(
+        RollPitchYawd(0.0, 0.0, -M_PI/2.).ToRotationMatrix(),
+        Vector3d{0.0, -0.55, 0.0}));
+  params.edge_step_size = 0.01;
+  params.model = robod_builder.Build();
+
+  //auto checker = std::make_unique<SceneGraphCollisionChecker>(std::move(params));
+  //*checker.UpdateContextPositions(*checker.plant, center_q);
+  SceneGraphCollisionChecker dut(std::move(params));
+  //dut.UpdateContextPositions(dut.plant_context(), center_q);
+  std::shared_ptr<CollisionCheckerContext> collision_context =
+      dut.MakeStandaloneModelContext();
+  const Context<double>& standalone_plant_context =
+      dut.UpdateContextPositions(collision_context.get(), center_q);
+
   return std::move(geometry::optimization::IrisInConfigurationSpace(
                        dut.plant(), standalone_plant_context, options_))
       .Clone();
