@@ -284,6 +284,7 @@ void IrisInConfigurationSpaceFromCliqueCover(
   for (auto& abstract_set : abstract_sets) {
     std::unique_ptr<HPolyhedron> set{
         dynamic_cast<HPolyhedron*>(abstract_set.release())};
+    /*
     auto A = set->A();
     auto b = set->b();
     auto set_copy = *set.release();
@@ -310,6 +311,8 @@ void IrisInConfigurationSpaceFromCliqueCover(
       }
       row_index += 1;
     }
+    */
+    /*
     std::cout<<"\tA :"<<", rows:"<<A.rows()<<", cols:"<<A.cols()<<std::endl;
     for (int i=0;i<A.rows();i++) {
       for (int j=0;j<A.cols();j++) {
@@ -326,6 +329,7 @@ void IrisInConfigurationSpaceFromCliqueCover(
       std::cout<<"\n";
     }
     std::cout<<"\n";
+    */
     sets->emplace_back(set->A(), set->b());
   }
 }
