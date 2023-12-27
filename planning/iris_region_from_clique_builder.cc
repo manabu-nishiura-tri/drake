@@ -189,7 +189,11 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
   auto twoDoF_iiwa_asset = FindResourceOrThrow(
       "drake/planning/2d_arms/twoDOF_iiwa7_with_box_collision.sdf");
   auto box_asset = FindResourceOrThrow(
+      "drake/planning/2d_arms/box_small_with_obstacle.urdf");
+  /*
+  auto box_asset = FindResourceOrThrow(
       "drake/planning/2d_arms/box_small.urdf");
+  */
   // We can use model directives file instead.
 
   CollisionCheckerParams params;
