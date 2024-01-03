@@ -88,13 +88,13 @@
     <collision>
        <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.1 0.1 0.1"/>
+        <box size="0.2 0.2 0.2"/>
       </geometry>
     </collision>
     <visual>
        <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.1 0.1 0.1"/>
+        <box size="0.2 0.2 0.2"/>
       </geometry>
     </visual>
   </link>
