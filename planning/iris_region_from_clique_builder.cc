@@ -190,8 +190,10 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
       "drake/planning/2d_arms/twoDOF_iiwa7_with_box_collision.sdf");
   auto box_asset = FindResourceOrThrow(
       "drake/planning/2d_arms/box_small.urdf");
+  /*
   auto obs_asset = FindResourceOrThrow(
       "drake/planning/2d_arms/obstacle.urdf");
+  */
   // We can use model directives file instead.
 
   CollisionCheckerParams params;
@@ -202,8 +204,10 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
       robod_builder.parser().AddModelFromFile(twoDoF_iiwa_asset));
   params.robot_model_instances.push_back(
       robod_builder.parser().AddModelFromFile(oneDoF_iiwa_asset));
+  /*
   params.robot_model_instances.push_back(
       robod_builder.parser().AddModelFromFile(obs_asset));
+  */
   auto& plant = robod_builder.plant();
 
   // Weld box scene and arms to world.
@@ -230,6 +234,7 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
         RollPitchYawd(0.0, 0.0, -M_PI/2.).ToRotationMatrix(),
         Vector3d{0.0, -0.55, 0.0}));
   // Get the obstacle transformation from plant_ context
+  /*
   auto& obs_body = plant_.GetBodyByName("box_obs");
   auto pose = obs_body.EvalPoseInWorld(context_);
   plant.WeldFrames(plant.world_frame(),
@@ -238,6 +243,7 @@ IrisInConfigurationSpaceRegionFromCliqueBuilder::DoBuildConvexSet(
       pose
       //RigidTransform(Vector3d{0.0, 0.0, 0.0})
       );
+  */
 
   params.edge_step_size = 0.01;
   params.model = robod_builder.Build();
